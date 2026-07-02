@@ -1,12 +1,10 @@
-﻿using Autodesk.DataManagement.Model;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using Autodesk.DataManagement.Model;
 
 public partial class APSService
 {
 	public async Task<IEnumerable<dynamic>> GetVersions(string projectId, string itemId, Tokens tokens)
 	{
-		Versions versions = await _dataManagementClient.GetItemVersionsAsync(projectId, itemId);
+		Versions versions = await _dataManagementClient.GetItemVersionsAsync(projectId, itemId, accessToken: tokens.InternalToken);
 		return versions.Data;
 	}
 }

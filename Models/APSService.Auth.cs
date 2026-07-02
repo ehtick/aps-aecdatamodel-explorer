@@ -1,12 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
 using Autodesk.Authentication.Model;
-using Autodesk.Forge;
-using System.Security.Cryptography;
-using System.Text.RegularExpressions;
-using Newtonsoft.Json.Linq;
-using System.Text;
-using System.Web;
 
 public partial class APSService
 {
@@ -35,55 +27,36 @@ public partial class APSService
 
 	public async Task<Tokens> GenerateTokens(string code)
 	{
-		ThreeLeggedToken internalAuth;
-		RefreshToken publicAuth;
-		if (!_customCredentials)
-		{
-			internalAuth = await _authClient.GetThreeLeggedTokenAsync(_clientId, _clientSecret, code, _callbackUri);
-			publicAuth = await _authClient.GetRefreshTokenAsync(_clientId, _clientSecret, internalAuth.RefreshToken, PublicTokenScopes);
-		}
-		else
-		{
-			internalAuth = await _authClient.GetThreeLeggedTokenAsync(_customclientId, _customclientSecret, code, _callbackUri);
-			publicAuth = await _authClient.GetRefreshTokenAsync(_customclientId, _customclientSecret, internalAuth.RefreshToken, PublicTokenScopes);
-		}
+		var clientId = _customCredentials ? _customclientId : _clientId;
+		var clientSecret = _customCredentials ? _customclientSecret : _clientSecret;
+
+		ThreeLeggedToken internalAuth = await _authClient.GetThreeLeggedTokenAsync(clientId: clientId, code: code, redirectUri: _callbackUri, clientSecret: clientSecret);
+		ThreeLeggedToken publicAuth = await _authClient.RefreshTokenAsync(refreshToken: internalAuth.RefreshToken!, clientId: clientId, clientSecret: clientSecret, scopes: PublicTokenScopes);
 		return new Tokens
 		{
-			PublicToken = publicAuth.AccessToken,
-			InternalToken = internalAuth.AccessToken,
-			RefreshToken = publicAuth._RefreshToken,
-			ExpiresAt = DateTime.Now.ToUniversalTime().AddSeconds((double)internalAuth.ExpiresIn)
+			PublicToken = publicAuth.AccessToken!,
+			InternalToken = internalAuth.AccessToken!,
+			RefreshToken = publicAuth.RefreshToken!,
+			ExpiresAt = DateTime.Now.ToUniversalTime().AddSeconds((double)internalAuth.ExpiresIn!)
 		};
 	}
 
 	public async Task<Tokens> RefreshTokens(Tokens tokens)
 	{
-		RefreshToken internalAuth;
-		RefreshToken publicAuth;
-		if (_customCredentials)
-		{
-			internalAuth = await _authClient.GetRefreshTokenAsync(_clientId, _clientSecret, tokens.RefreshToken, InternalTokenScopes);
-			publicAuth = await _authClient.GetRefreshTokenAsync(_clientId, _clientSecret, internalAuth._RefreshToken, PublicTokenScopes);
-		}
-		else
-		{
-			internalAuth = await _authClient.GetRefreshTokenAsync(_clientId, _clientSecret, tokens.RefreshToken, InternalTokenScopes);
-			publicAuth = await _authClient.GetRefreshTokenAsync(_clientId, _clientSecret, internalAuth._RefreshToken, PublicTokenScopes);
-		}
+		ThreeLeggedToken internalAuth = await _authClient.RefreshTokenAsync(refreshToken: tokens.RefreshToken, clientId: _clientId, clientSecret: _clientSecret, scopes: InternalTokenScopes);
+		ThreeLeggedToken publicAuth = await _authClient.RefreshTokenAsync(refreshToken: internalAuth.RefreshToken!, clientId: _clientId, clientSecret: _clientSecret, scopes: PublicTokenScopes);
 		return new Tokens
 		{
-			PublicToken = publicAuth.AccessToken,
-			InternalToken = internalAuth.AccessToken,
-			RefreshToken = publicAuth._RefreshToken,
-			ExpiresAt = DateTime.Now.ToUniversalTime().AddSeconds((double)internalAuth.ExpiresIn).AddSeconds(-1700)
+			PublicToken = publicAuth.AccessToken!,
+			InternalToken = internalAuth.AccessToken!,
+			RefreshToken = publicAuth.RefreshToken!,
+			ExpiresAt = DateTime.Now.ToUniversalTime().AddSeconds((double)internalAuth.ExpiresIn!).AddSeconds(-1700)
 		};
 	}
 
 	public async Task<dynamic> GetUserProfile(Tokens tokens)
 	{
-		var api = new UserProfileApi();
-		api.Configuration.AccessToken = tokens.InternalToken;
-		dynamic profile = await api.GetUserProfileAsync();
-		return profile;
+		var userInfo = await _authClient.GetUserInfoAsync(tokens.InternalToken);
+		return new { firstName = userInfo.GivenName, lastName = userInfo.FamilyName };
 	}
 }

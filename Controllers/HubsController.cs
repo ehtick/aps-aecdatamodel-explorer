@@ -1,7 +1,5 @@
-﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -17,7 +15,7 @@ public class HubsController : ControllerBase
 	}
 
 	[HttpGet("{project}/contents/{item}/versions")]
-	public async Task<ActionResult<string>> ListVersions(string project, string item)
+	public async Task<ActionResult> ListVersions(string project, string item)
 	{
 		var tokens = await AuthController.PrepareTokens(Request, Response, _apsService);
 		if (tokens == null)
@@ -25,6 +23,6 @@ public class HubsController : ControllerBase
 			return Unauthorized();
 		}
 		var versions = await _apsService.GetVersions(project, item, tokens);
-		return JsonConvert.SerializeObject(versions);
+		return Ok(versions);
 	}
 }

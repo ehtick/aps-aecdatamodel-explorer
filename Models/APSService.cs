@@ -1,8 +1,6 @@
-﻿using System;
 using Autodesk.Authentication;
 using Autodesk.Authentication.Model;
 using Autodesk.DataManagement;
-using Autodesk.Forge;
 using Autodesk.SDKManager;
 
 public class Tokens
@@ -32,11 +30,10 @@ public partial class APSService
 		_clientSecret = clientSecret;
 		_callbackUri = callbackUri;
 		SDKManager sdkManager = SdkManagerBuilder
-						.Create() // Creates SDK Manager Builder itself.
+						.Create()
 						.Build();
 
 		_authClient = new AuthenticationClient(sdkManager);
 		_dataManagementClient = new DataManagementClient(sdkManager);
-
 	}
 }
